@@ -1,0 +1,62 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model User {
+    id           String   @id @default(uuid(7))
+    email        String   @unique
+    passwordHash String   @map("password_hash")
+    phone        String?
+    firstName    String?  @map("first_name")
+    lastName     String?  @map("last_name")
+    avatarUrl    String?  @map("avatar_url")
+    isVerified   Boolean  @default(false) @map("is_verified")
+    createdAt    DateTime @default(now()) @map("created_at")
+
+    cars         Car[]
+
+    @@map("users")
+}
+
+enum FuelType {
+    petrol
+    diesel
+    electric
+    hybrid
+}
+
+enum Transmission {
+    manual
+    automatic
+}
+
+enum CarStatus {
+    active
+    inactive
+    rented
+}
+
+model Car {
+    id           String       @id @default(uuid(7))
+    ownerId      String       @map("owner_id")
+    owner        User         @relation(fields: [ownerId], references: [id])
+    brand        String
+    model        String
+    year         Int
+    fuelType     FuelType     @map("fuel_type")
+    transmission Transmission
+    description  String?
+    pricePerDay  Decimal      @map("price_per_day")
+    deposit      Decimal
+    status       CarStatus    @default(active)
+    lat          Decimal
+    lng          Decimal
+    address      String
+    createdAt    DateTime     @default(now()) @map("created_at")
+
+    @@map("cars")
+}
