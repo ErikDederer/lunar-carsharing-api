@@ -6,6 +6,7 @@ import { PrismaService } from 'prisma/prisma.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
+import type { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -15,8 +16,8 @@ import { AuthController } from './auth.controller';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '1d' },
+        secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        signOptions: { expiresIn: config.get<StringValue>('JWT_ACCESS_EXPIRES_IN', '15m') },
       }),
     }),
   ],

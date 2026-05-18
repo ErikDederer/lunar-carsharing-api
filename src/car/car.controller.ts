@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   UseGuards,
@@ -29,19 +28,23 @@ export class CarController {
   getMyCars(@CurrentUser() user: User) {}
 
   @Get('/:id')
-  getCarById(@Param('id', ParseIntPipe) id: number) {
+  getCarById(@Param('id') id: string) {
     return this.carService.findById(id);
   }
 
   @Post()
-  createCar(@Body(new ZodValidationPipe(CreateCarSchema)) dto: CreateCarDto) {
-    return this.carService.create(dto);
+  @UseGuards(JwtAuthGuard)
+  createCar(
+    @Body(new ZodValidationPipe(CreateCarSchema)) dto: CreateCarDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.carService.create({ ...dto, ownerId: user.id });
   }
 
   @Patch('/:id')
   @UseGuards(JwtAuthGuard)
   updateCar(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: Partial<CreateCarDto>,
     @CurrentUser() user: User,
   ) {}

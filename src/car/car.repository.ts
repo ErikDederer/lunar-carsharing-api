@@ -13,13 +13,13 @@ export class CarRepository {
     });
   }
 
-  findById(id: number): Promise<Car | null> {
+  findById(id: string): Promise<Car | null> {
     return this.prisma.car.findUnique({
       where: { id },
     });
   }
 
-  delete(id: number): Promise<Car | null> {
+  delete(id: string): Promise<Car | null> {
     return this.prisma.car.delete({ where: { id } });
   }
 

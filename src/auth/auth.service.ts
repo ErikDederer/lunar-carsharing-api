@@ -3,6 +3,7 @@ import { PrismaService } from 'prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto, RegisterDto } from './auth.dto';
 import bcrypt from 'bcryptjs';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -21,10 +22,10 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
-        password: hashed,
+        hashed: hashed,
       },
     });
-    return this.signToken(user.id, user.email, user.role);
+    return this.signToken(user.id, user.email);
   }
 
   async login(dto: LoginDto) {
@@ -34,14 +35,14 @@ export class AuthService {
     if (!user) {
       throw new ConflictException('User not found');
     }
-    const valid = await bcrypt.compare(dto.password, user.password);
+    const valid = await bcrypt.compare(dto.password, user.hashed);
     if (!valid) {
       throw new ConflictException('Invalid password');
     }
-
-    return this.signToken(user.id, user.email, user.role);
+    return this.signToken(user.id, user.email);
   }
-  private signToken(sub: string, email: string, role: string) {
-    return { access_token: this.jwt.sign({ sub, email, role }) };
+
+  private signToken(sub: string, email: string) {
+    return { access_token: this.jwt.sign({ sub, email }) };
   }
 }
