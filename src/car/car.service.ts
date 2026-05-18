@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CarRepository } from './car.repository';
 import { CreateCarDto } from './car.create.dto';
+import { CarCreateInput } from './car.interface';
 
 @Injectable()
 export class CarService {
@@ -10,7 +11,7 @@ export class CarService {
     return await this.repo.findAll();
   }
 
-  async findById(id: number) {
+  async findById(id: string) {
     const car = await this.repo.findById(id);
     if (!car) {
       throw new NotFoundException(`Car with id ${id} not found`);
@@ -18,7 +19,7 @@ export class CarService {
     return car;
   }
 
-  async delete(id: number) {
+  async delete(id: string) {
     const car = await this.repo.findById(id);
     if (!car) {
       throw new NotFoundException(`Car with id ${id} not found`);
@@ -26,7 +27,7 @@ export class CarService {
     return this.repo.delete(car.id);
   }
 
-  async create(dto: CreateCarDto) {
-    return this.repo.create(dto);
+  async create(dto: CreateCarDto & { ownerId: string }) {
+    return this.repo.create(dto as CarCreateInput);
   }
 }

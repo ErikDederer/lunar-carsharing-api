@@ -6,22 +6,6 @@ datasource db {
     provider = "postgresql"
 }
 
-model User {
-    id           String   @id @default(uuid(7))
-    email        String   @unique
-    passwordHash String   @map("password_hash")
-    phone        String?
-    firstName    String?  @map("first_name")
-    lastName     String?  @map("last_name")
-    avatarUrl    String?  @map("avatar_url")
-    isVerified   Boolean  @default(false) @map("is_verified")
-    createdAt    DateTime @default(now()) @map("created_at")
-
-    cars         Car[]
-
-    @@map("users")
-}
-
 enum FuelType {
     petrol
     diesel
@@ -40,6 +24,38 @@ enum CarStatus {
     rented
 }
 
+enum PeriodType {
+    available
+    blocked
+}
+
+enum BookingStatus {
+    PENDING
+    CONFIRMED
+    CANCELLED
+    COMPLETED
+}
+
+model User {
+    id           String   @id @default(uuid(7))
+    email        String   @unique
+    hashed       String   @map("password_hash")
+    firstName    String?  @map("first_name")
+    lastName     String?  @map("last_name")
+    phone        String?
+    avatarUrl    String?  @map("avatar_url")
+    isBlocked    Boolean  @default(false) @map("is_blocked")
+    isVerified   Boolean  @default(false) @map("is_verified")
+    createdAt    DateTime @default(now()) @map("created_at")
+    updatedAt    DateTime @updatedAt @map("updated_at")
+
+    cars          Car[]
+    bookings      Booking[]      @relation("RenterBookings")
+    refreshTokens RefreshToken[]
+
+    @@map("users")
+}
+
 model Car {
     id           String       @id @default(uuid(7))
     ownerId      String       @map("owner_id")
@@ -52,11 +68,66 @@ model Car {
     description  String?
     pricePerDay  Decimal      @map("price_per_day")
     deposit      Decimal
-    status       CarStatus    @default(active)
+    address      String
     lat          Decimal
     lng          Decimal
-    address      String
+    carStatus    CarStatus    @default(active) @map("car_status")
     createdAt    DateTime     @default(now()) @map("created_at")
+    updatedAt    DateTime     @updatedAt @map("updated_at")
+
+    photos   CarPhoto[]
+    slots    Slot[]
+    bookings Booking[]
 
     @@map("cars")
+}
+
+model CarPhoto {
+    id          String @id @default(uuid(7))
+    carId       String @map("car_id")
+    car         Car    @relation(fields: [carId], references: [id])
+    carPhotoUrl String @map("car_photo_url")
+    sortOrder   Int    @default(0) @map("sort_order")
+
+    @@map("car_photos")
+}
+
+model Slot {
+    id         String     @id @default(uuid(7))
+    carId      String     @map("car_id")
+    car        Car        @relation(fields: [carId], references: [id])
+    dateFrom   DateTime   @map("date_from")
+    dateTo     DateTime   @map("date_to")
+    periodType PeriodType @map("period_type")
+    createdAt  DateTime   @default(now()) @map("created_at")
+
+    @@map("slots")
+}
+
+model Booking {
+    id            String        @id @default(uuid(7))
+    carId         String        @map("car_id")
+    car           Car           @relation(fields: [carId], references: [id])
+    renterId      String        @map("renter_id")
+    renter        User          @relation("RenterBookings", fields: [renterId], references: [id])
+    startAt       DateTime      @map("start_at")
+    endAt         DateTime      @map("end_at")
+    totalPrice    Decimal       @map("total_price")
+    depositAmount Decimal       @map("deposit_amount")
+    bookingStatus BookingStatus @default(PENDING) @map("booking_status")
+    createdAt     DateTime      @default(now()) @map("created_at")
+    updatedAt     DateTime      @updatedAt @map("updated_at")
+
+    @@map("bookings")
+}
+
+model RefreshToken {
+    id        String   @id @default(uuid(7))
+    userId    String   @map("user_id")
+    user      User     @relation(fields: [userId], references: [id])
+    token     String   @unique
+    expiresAt DateTime @map("expires_at")
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@map("refresh_tokens")
 }
