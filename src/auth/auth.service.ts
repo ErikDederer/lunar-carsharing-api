@@ -1,8 +1,15 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto, RegisterDto } from './auth.dto';
-import bcrypt from 'bcryptjs';
+import { AuthResponse } from './auth.types';
+import { toUserResponse } from './auth.mapper';
+import { hash, compare } from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
@@ -11,38 +18,52 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto): Promise<AuthResponse> {
+    const email = dto.email.toLowerCase().trim();
+
     const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email },
     });
     if (existing) {
       throw new ConflictException('Email already in use');
     }
-    const hashed = await bcrypt.hash(dto.password, 10);
+
+    const hashed = await hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
-        hashed: hashed,
+        email,
+        hashed,
       },
     });
-    return this.signToken(user.id, user.email);
+
+    const accessToken = this.jwt.sign({ sub: user.id, email: user.email });
+    return { accessToken, user: toUserResponse(user) };
   }
 
-  async login(dto: LoginDto) {
+  logout(): { message: string } {
+    return { message: 'Logged out successfully' };
+  }
+
+  async login(dto: LoginDto): Promise<AuthResponse> {
+    const email = dto.email.toLowerCase().trim();
+
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email },
     });
     if (!user) {
-      throw new ConflictException('User not found');
+      throw new UnauthorizedException('Invalid credentials');
     }
-    const valid = await bcrypt.compare(dto.password, user.hashed);
-    if (!valid) {
-      throw new ConflictException('Invalid password');
-    }
-    return this.signToken(user.id, user.email);
-  }
 
-  private signToken(sub: string, email: string) {
-    return { access_token: this.jwt.sign({ sub, email }) };
+    const valid = await compare(dto.password, user.hashed);
+    if (!valid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.isBlocked) {
+      throw new ForbiddenException('Account is blocked');
+    }
+
+    const accessToken = this.jwt.sign({ sub: user.id, email: user.email });
+    return { accessToken, user: toUserResponse(user) };
   }
 }
