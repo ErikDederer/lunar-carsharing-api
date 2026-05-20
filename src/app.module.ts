@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { CarModule } from './car/car.module';
@@ -7,6 +8,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { SlotsModule } from './slots/slots.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { MessagesModule } from './messages/messages.module';
+import { JwtAuthGuard } from './common/guards/jwt.guard';
 
 @Module({
   imports: [
@@ -20,6 +22,6 @@ import { MessagesModule } from './messages/messages.module';
     MessagesModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule {}
